@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventType {
+  LACOPA
+  GT3
+  GT4
+
+  @@map("event_types")
+}
+
+enum EventStyle {
+  SPRINT
+  ENDURANCE
+  DOUBLE
+
+  @@map("event_styles")
+}
+
+enum SessionType {
+  FP
+  R
+  Q
+
+  @@map("session_types")
+}
+
+model Car {
+  id                Int               @id @default(autoincrement())
+  external_id       Int               @unique
+  model             String
+  year              Int
+  leader_board_line LeaderBoardLine[]
+
+  @@map("cars")
+}
+
+model Track {
+  id     Int     @id @default(autoincrement())
+  name   String
+  length Int
+  Event  Event[]
+
+  @@map("tracks")
+}
+
+model Driver {
+  id                                Int               @id @default(autoincrement())
+  first_name                        String?
+  last_name                         String
+  player_id                         String            @unique
+  short_name                        String?
+  driver_category                   Int
+  helmet_template_key               Int
+  helmet_base_color                 Int
+  helmet_detail_color               Int
+  helmet_material_type              Int
+  helmet_glass_color                Int
+  helmet_glass_metallic             Float
+  gloves_template_key               Int
+  suit_template_key                 Int
+  suit_detail_color1                Int
+  suit_detail_color2                Int
+  ai_skill                          Int
+  ai_aggro                          Int
+  ai_rain_skill                     Int
+  ai_consistency                    Int
+  custom_car                        String?
+  race_number                       Int               @default(-1)
+  default_grid_position             Int               @default(-1)
+  forced_car_model                  Int               @default(-1)
+  override_driver_info              Int               @default(1)
+  is_server_admin                   Int               @default(1)
+  override_car_model_for_custom_car Int               @default(0)
+  config_version                    Int               @default(1)
+  leader_board_lines                LeaderBoardLine[]
+  penalties                         Penalty[]
+  laps                              Lap[]
+
+  @@map("drivers")
+}
+
+model Event {
+  id       Int        @id @default(autoincrement())
+  type     EventType
+  style    EventStyle
+  server   String
+  date     DateTime
+  name     String
+  track_id Int
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  track              Track             @relation(fields: [track_id], references: [id], onDelete: Restrict)
+  leader_board_lines LeaderBoardLine[]
+  laps               Lap[]
+  penalties          Penalty[]
+
+  @@map("events")
+}
+
+model LeaderBoardLine {
+  id           String      @id @default(uuid())
+  position     Int
+  race_number  Int
+  lap_count    Int
+  best_lap     String
+  total_time   String
+  is_spectator Boolean     @default(false)
+  event_car_id Int
+  session_type SessionType
+
+  event_id  Int
+  player_id String
+  car_model Int
+
+  event  Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  car    Car    @relation(fields: [car_model], references: [external_id], onDelete: Restrict)
+  driver Driver @relation(fields: [player_id], references: [player_id], onDelete: Restrict)
+
+  @@map("leader_border_lines")
+}
+
+model Lap {
+  id                Int         @id @default(autoincrement())
+  lap_number        Int
+  lap_time          String
+  is_valid_for_best Boolean     @default(false)
+  event_car_id      Int
+  split_one         String
+  split_two         String
+  split_three       String
+  session_type      SessionType
+
+  event_id  Int
+  player_id String
+
+  driver Driver @relation(fields: [player_id], references: [player_id], onDelete: Restrict)
+  event  Event  @relation(fields: [event_id], references: [id])
+
+  @@map("laps")
+}
+
+model Penalty {
+  id               Int         @id @default(autoincrement())
+  event_car_id     Int
+  session_type     SessionType
+  reason           String
+  penalty          String
+  value            String
+  violation_in_lap Int         @default(-1)
+  cleared_in_lap   Int         @default(-1)
+  player_id        String
+
+  event_id Int
+
+  event  Event  @relation(fields: [event_id], references: [id])
+  driver Driver @relation(fields: [player_id], references: [player_id], onDelete: Restrict)
+
+  @@map("penalties")
+}
