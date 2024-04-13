@@ -1,12 +1,14 @@
 "use client";
 
-import { RaceTypes, eventStyle } from "@/choices";
+import { RaceTypes, eventStyle } from "@/utils/choices";
 import { columns } from "@/components/cars/columns";
 import { DataTable } from "@/components/cars/data_table";
+import EventsForm, { CreateEventFormData } from "@/components/events/form";
 import { Button } from "@/components/ui/button";
 import { Car } from "@/types";
 import { EventStyle, EventType } from "@prisma/client";
 import { useCallback, useEffect, useState } from "react";
+import getEventName from "@/utils/parseFile/extractEventName";
 
 export default function Home() {
   const [cars, setCars] = useState<Car[]>([]);
@@ -25,14 +27,32 @@ export default function Home() {
     }
   }, [setCars]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    console.info({
-      name,
-      style,
-      type,
-      files,
-    });
+  function readFile(file: File) {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      try {
+        const parsed = JSON.parse(content);
+        // Extract file name
+        const fileName = file.name;
+        const [eventDate, sessionType] = getEventName({ fileName });
+
+        // Extract trackname
+        const trackName = parsed.trackName;
+
+        console.info({ parsed, eventDate, sessionType, trackName });
+      } catch (error) {
+        alert("Erro ao fazer o parse do arquivo JSON.");
+        console.error("Error parsing JSON:", error);
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+  }
+
+  async function handleSubmit(data: CreateEventFormData) {
+    console.info({ data });
+    data.files.forEach((file) => readFile(file));
   }
 
   useEffect(() => {
@@ -47,63 +67,7 @@ export default function Home() {
         </h1>
         <DataTable columns={columns} data={cars} />
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col items-start justify-center gap-2 text-white"
-      >
-        <div className="flex flex-col items-start gap-1">
-          <label>Nome</label>
-          <input
-            className="text-zinc-700"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col items-start gap-1">
-          <label>Tipo</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as EventType)}
-            className="text-zinc-700"
-          >
-            <option defaultChecked hidden>
-              Selecione o tipo
-            </option>
-            {RaceTypes.map((type) => (
-              <option value={type.value} key={type.value}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col items-start gap-1">
-          <label>Estilo</label>
-          <select
-            value={style}
-            onChange={(e) => setStyle(e.target.value as EventStyle)}
-            className="text-zinc-700"
-          >
-            <option defaultChecked hidden>
-              Selecione o estilo
-            </option>
-            {eventStyle.map((style) => (
-              <option value={style.value} key={style.value}>
-                {style.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col items-start gap-1">
-          <label>Arquivos</label>
-          <input
-            onChange={(e) => setFiles(e.target.files)}
-            type="file"
-            multiple
-            accept=".json"
-          />
-        </div>
-        <Button className="bg-slate-300 text-zinc-950">Confirmar</Button>
-      </form>
+      <EventsForm handleSubmit={handleSubmit} />
     </main>
   );
 }

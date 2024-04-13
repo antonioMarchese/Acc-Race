@@ -90,12 +90,12 @@ model Driver {
 }
 
 model Event {
-  id       Int        @id @default(autoincrement())
-  type     EventType
-  style    EventStyle
+  id       Int         @id @default(autoincrement())
+  type     EventType?
+  style    EventStyle?
   server   String
   date     DateTime
-  name     String
+  name     String?
   track_id Int
 
   created_at DateTime @default(now())
@@ -106,6 +106,7 @@ model Event {
   laps               Lap[]
   penalties          Penalty[]
 
+  @@unique([track_id, date])
   @@map("events")
 }
 
