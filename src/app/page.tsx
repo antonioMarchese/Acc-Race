@@ -37,7 +37,7 @@ export default function Home() {
         // Extract file name
         const fileName = file.name;
         const [eventDate, sessionType] = getEventName({ fileName });
-
+        
         // Extract trackname
         const trackName = parsed.trackName;
 
